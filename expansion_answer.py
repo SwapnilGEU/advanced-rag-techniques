@@ -29,25 +29,39 @@ pdf_texts = [text for text in pdf_texts if text]
 # split the text into smaller chunks
 
 
-from langchain.text_splitter import (
-    RecursiveCharacterTextSplitter,
-    SentenceTransformersTokenTextSplitter,
-)
+def chunk_text_by_character_count(text, chunk_size):
+    return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
 
-character_splitter = RecursiveCharacterTextSplitter(
-    separators=["\n\n", "\n", ". ", " ", ""], chunk_size=1000, chunk_overlap=0
-)
-character_split_texts = character_splitter.split_text("\n\n".join(pdf_texts))
+
+def chunk_text_by_word_count(text, tokens_per_chunk, chunk_overlap=0):
+    words = text.split()
+    if not words:
+        return []
+
+    chunks = []
+    index = 0
+    while index < len(words):
+        end = min(index + tokens_per_chunk, len(words))
+        chunks.append(" ".join(words[index:end]))
+        index = end - chunk_overlap
+        if index <= 0:
+            index = end
+
+    return chunks
+
+
+character_split_texts = []
+for text in pdf_texts:
+    character_split_texts += chunk_text_by_character_count(text, 1000)
 
 # print(word_wrap(character_split_texts[10]))
 # print(f"\nTotal chunks: {len(character_split_texts)}")
 
-token_splitter = SentenceTransformersTokenTextSplitter(
-    chunk_overlap=0, tokens_per_chunk=256
-)
 token_split_texts = []
 for text in character_split_texts:
-    token_split_texts += token_splitter.split_text(text)
+    token_split_texts += chunk_text_by_word_count(
+        text, tokens_per_chunk=256, chunk_overlap=0
+    )
 
 # print(word_wrap(token_split_texts[10]))
 # print(f"\nTotal chunks: {len(token_split_texts)}")
